@@ -1,10 +1,28 @@
 package serial;
 
+import java.awt.Button;
+import java.awt.Frame;
+import java.awt.GridLayout;
+import java.awt.Label;
+import java.awt.List;
+import java.awt.Panel;
+import java.awt.TextField;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.ItemEvent;
+import java.awt.event.ItemListener;
+import java.awt.event.WindowEvent;
+import java.awt.event.WindowListener;
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.net.Socket;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Set;
 
 import gnu.io.CommPort;
 import gnu.io.CommPortIdentifier;
@@ -13,6 +31,7 @@ import gnu.io.SerialPortEvent;
 import gnu.io.SerialPortEventListener;
 import msg.Client;
 import msg.Client.Sender;
+import msg.Msg;
 
 public class SerialReadWrite implements SerialPortEventListener {
 
@@ -112,6 +131,7 @@ public class SerialReadWrite implements SerialPortEventListener {
 
             String ss = new String(readBuffer);
             System.out.println("Receive Low Data:" + ss + "||");
+          
             if(ss.charAt(1)=='U') {
                String data =parseData(ss);
                client.sendData(data.substring(0, 8),data.substring(8));
@@ -150,6 +170,7 @@ public class SerialReadWrite implements SerialPortEventListener {
          String id = "00000000";
          //msg = msg.toUpperCase();
          System.out.println("convertData msg: "+msg);
+         rightList.add(msg);
          if(msg.length() == 1) {
             msg=id+"000000000000000"+msg;
          }else if(msg.length() == 2) {
@@ -172,6 +193,7 @@ public class SerialReadWrite implements SerialPortEventListener {
 
          String result = ":";
          result += msg + Integer.toHexString(checkSum).toUpperCase() + "\r";
+         leftList.add(result);
          System.out.println("result: "+result);
          return result;
 
@@ -201,7 +223,152 @@ public class SerialReadWrite implements SerialPortEventListener {
       return id+txt;
    }
    
-   
+   Frame frame;
+	List leftList,rightList;
+	Panel panel,centerPanel;
+	TextField txtTx;
+	Label lb;
+	
+
+	
+	ArrayList<String> msgList;
+	ArrayList<String> sendtoECUList;
+	
+	public void receiveList(
+	HashMap<String,ObjectOutputStream> maps) {
+		Set<String> keys = maps.keySet();
+		Iterator<String> skeys = 
+				keys.iterator();
+		msgList = new ArrayList<>();
+		while(skeys.hasNext()) {
+			String msg = skeys.next();
+			msgList.add(msg);
+			rightList.add(msg);
+		}
+		
+	}
+	
+	public void txtList(
+			HashMap<String,ObjectOutputStream> maps) {
+				Set<String> keys = maps.keySet();
+				Iterator<String> skeys = 
+						keys.iterator();
+				sendtoECUList = new ArrayList<>();
+				while(skeys.hasNext()) {
+					String msg = skeys.next();
+					leftList.add(msg);
+			
+				}
+		
+				
+			}
+			
+	
+	public void consoleStart() {
+		frame = new Frame();
+		leftList = new List();
+		rightList = new List();
+		panel = new Panel();
+		centerPanel = new Panel();
+		txtTx = new TextField(8);
+		lb = new Label("접속자수:0");
+		
+		panel.add(lb);
+		panel.add(txtTx);
+
+		
+		
+		frame.add(panel,"North");
+		centerPanel.setLayout(
+				new GridLayout(1, 2));
+		centerPanel.add(leftList);
+		centerPanel.add(rightList);
+		frame.add(centerPanel,"Center");
+		
+		frame.setSize(500,400);
+		frame.setVisible(true);
+		
+		
+		
+		rightList.addItemListener(new ItemListener() {
+			
+			@Override
+			public void itemStateChanged(ItemEvent e) {
+				String msg = 
+						msgList.get(
+					         (int)e.getItem()
+						);
+				txtTx.setText(msg);
+				
+			}
+		});
+		
+			leftList.addItemListener(new ItemListener() {
+						
+			@Override
+			public void itemStateChanged(ItemEvent e) {
+				String txt = 
+						sendtoECUList.get(
+					         (int)e.getItem()
+						);
+				txtTx.setText(txt);
+				
+			}
+		});
+		
+		frame.addWindowListener(new WindowListener() {
+			
+			@Override
+			public void windowOpened(WindowEvent e) {
+				// TODO Auto-generated method stub
+				
+			}
+			
+			@Override
+			public void windowIconified(WindowEvent e) {
+				// TODO Auto-generated method stub
+				
+			}
+			
+			@Override
+			public void windowDeiconified(WindowEvent e) {
+				// TODO Auto-generated method stub
+				
+			}
+			
+			@Override
+			public void windowDeactivated(WindowEvent e) {
+				// TODO Auto-generated method stub
+				
+			}
+			
+			@Override
+			public void windowClosing(WindowEvent e) {
+				frame.setVisible(false);
+				if(socket != null) {
+					try {
+						socket.close();
+					} catch (IOException e1) {
+						e1.printStackTrace();
+					}
+				}
+				System.exit(0);
+				
+			}
+			
+			@Override
+			public void windowClosed(WindowEvent e) {
+				// TODO Auto-generated method stub
+				
+			}
+			
+			@Override
+			public void windowActivated(WindowEvent e) {
+				// TODO Auto-generated method stub
+				
+			}
+		});
+	}
    
    public static void main(String[] args) {
 
@@ -209,6 +376,7 @@ public class SerialReadWrite implements SerialPortEventListener {
      
       try {
          sc = new SerialReadWrite("COM9");
+         sc.consoleStart();
          client = new Client("ip", 8888);
          new Thread(new Runnable() {
          
